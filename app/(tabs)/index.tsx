@@ -1,15 +1,57 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AuthContext } from '@/context/AuthContext';
+import { useContext, useEffect, useState } from 'react';
+import { logout } from '@/services/auth';
+import { router } from 'expo-router';
+import Button from '@/components/ui/Button';
+import Screen from '@/components/ui/Screen';
+import { mangaDexApi } from '@/services/mangaDex';
+import MangaCarousel from '@/components/MangaCarousel'; // Importando o carrossel
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+export default function Home() {
+  const { user, loading } = useContext(AuthContext);
+  const [isMounted, setIsMounted] = useState(false);
+  const [tags, setTags] = useState([]);
+  const [mangas, setMangas] = useState([]);
 
-export default function TabOneScreen() {
+  const fetchData = async () => {
+    try {
+      // Fetch tags list from MangaDex API
+      const dataTags = await mangaDexApi.getTags();
+      setTags(dataTags);
+
+      // Fetch manga list from MangaDex API
+      const dataMangas = await mangaDexApi.getMangaList();
+      setMangas(dataMangas);
+
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !user && isMounted) {
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 0);
+    }
+  }, [loading, user, isMounted]);
+
+  if (loading || !user) return null;
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
+    <Screen>
+
+      <MangaCarousel mangas={mangas} />
+      <Button title="Sair" onPress={logout} />
+
+    </Screen>
   );
 }
 
@@ -22,10 +64,5 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
   },
 });
